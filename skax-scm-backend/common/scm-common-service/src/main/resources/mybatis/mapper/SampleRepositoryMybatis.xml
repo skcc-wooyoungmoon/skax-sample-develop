@@ -1,0 +1,46 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="scm.common.biz.sample.infrastructure.mybatis.SampleRepositoryMybatis">
+
+    <resultMap id="SampleItemResultMap" type="scm.common.biz.sample.infrastructure.mybatis.SampleItemDto">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="createdDate" column="created_date"/>
+        <result property="lastModifiedDate" column="last_modified_date"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="SampleItemResultMap">
+        SELECT id, name, description, created_date, last_modified_date
+        FROM sample_mybatis_item
+        ORDER BY id DESC
+    </select>
+
+    <select id="findById" parameterType="long" resultMap="SampleItemResultMap">
+        SELECT id, name, description, created_date, last_modified_date
+        FROM sample_mybatis_item
+        WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="scm.common.biz.sample.infrastructure.mybatis.SampleItemDto"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sample_mybatis_item (name, description, created_date, last_modified_date)
+        VALUES (#{name}, #{description}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <update id="update">
+        UPDATE sample_mybatis_item
+        SET name               = #{name},
+            description        = #{description},
+            last_modified_date = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE
+        FROM sample_mybatis_item
+        WHERE id = #{id}
+    </delete>
+</mapper>
+

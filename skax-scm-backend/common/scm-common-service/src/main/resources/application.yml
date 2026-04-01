@@ -1,0 +1,100 @@
+spring:
+  output:
+    ansi:
+      enabled: never
+
+  autoconfigure:
+    # Security 자동 구성을 완전히 제외 (API Gateway에서 인증 처리)
+    exclude:
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+
+  ### 데이터베이스 ###
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:changeit}
+    url: jdbc:postgresql://${DB_URL:localhost:5432}/scm
+
+  ### 파일  ###
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 105MB # 전체 요청(파일 + 데이터)의 최대 크기
+
+  ### Redis (캐시·Spring Data Redis 공통 연결) ###
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:password123}
+      database: ${REDIS_DATABASE:0}
+      timeout: 60s
+
+### MyBatis ###
+mybatis:
+  mapper-locations: classpath:mybatis/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true # 테이블 컬럼 명이랑 DTO 필드명이랑 다를경우
+
+
+### JWT Token ###
+jwt:
+  secret: a_very_long_and_very_secure_secret_that_is_at_least_64_characters_long # 최소 32바이트 이상만 권장됨
+  expiration: 3600000 # 60분
+
+### 로깅 설정
+logging:
+  charset:
+    console: UTF-8
+  level:
+    root: info # 전체 로그 레벨
+    scm.common: debug # 특정 패키지 레벨
+    springframework:
+      boot:
+        autoconfigure: debug
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread][%-5level]%X{traceId}%X{depth} %msg%n" # 콘솔 로그 패턴
+# 로그 파일 관리
+#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread][%highlight(%-5level)]%X{traceId}%X{depth} %msg%n" # 콘솔 로그 패턴
+#  file:
+#    name: logs/app.log # 파일 로그 경로 지정
+#  logback:
+#    rollingpolicy:
+#      file-name-pattern: ${LOG_FILE}.%d{yyyy-MM-dd}.%i.gz
+#      max-file-size: 10MB
+
+### JDBC 로깅 라이브러리 (p6spy)
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: true
+
+### OpenAPI(Swagger)
+springdoc:
+  api-docs:
+    path: /common/v3/api-docs
+  swagger-ui:
+    path: /common/swagger-ui
+
+### Actuator (Health Check 등 관측성)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      show-details: always
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8081}
+  cache:
+    ttl-minutes: ${APP_CACHE_TTL_MINUTES:60}
+
+server:
+  port: ${SERVER_PORT:8082}
+  shutdown: graceful

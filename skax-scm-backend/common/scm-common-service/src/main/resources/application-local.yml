@@ -1,0 +1,8 @@
+spring:
+  # 외부 설정 yml
+  config:
+    import: classpath:filePolicy-local.yml
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql

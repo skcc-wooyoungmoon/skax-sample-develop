@@ -1,0 +1,77 @@
+replicaCount: 1
+
+image:
+  repository: skaxcommonagentdevacr.azurecr.io/scm-api-gateway
+  pullPolicy: IfNotPresent
+  tag: dev-20260331.18-b941571
+
+service:
+  type: ClusterIP
+  port: 8080
+
+httpRoute:
+  enabled: true
+  annotations: {}
+  parentRefs:
+  - name: eg
+    namespace: envoy-gateway-system
+  hostnames:
+  - api.scm.local
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+
+backendTrafficPolicy:
+  enabled: true
+  timeout:
+    http:
+      requestTimeout: 0s
+
+livenessProbe: 
+  httpGet:
+    path: /actuator/health
+    port: http
+readinessProbe: 
+  httpGet:
+    path: /actuator/health
+    port: http
+
+resources: 
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 384Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 90
+
+config:
+  APP_CORS_ALLOWED_ORIGINS: "http://admin.scm.local"
+  COMMON_SERVICE_URL: "http://scm-common-service.scm-backend.svc.cluster.local:8080"
+  APP_WEB_IP_WHITELIST: "211.45.60.0/29"
+  APP_JWT_SECRET: "a_very_long_and_very_secure_secret_that_is_at_least_64_characters_long"
+  APP_API_IP_ALLOWLIST: "0.0.0.0/0"
+  API_KEY_VALUE: "your_super_secret_api_key"
+  LOGGING_LEVEL_ROOT: "DEBUG"
+  LOGGING_LEVEL_ORG_SPRING: "DEBUG"
+  LOGGING_LEVEL_ORG_HIBERNATE: "INFO"
+  LOGGING_LEVEL_JDK_EVENT_SECURITY: "INFO"
+  LOGGING_LEVEL_IO_LETTUCE: "WARN"
+  LOGGING_LEVEL_IO_NETTY: "INFO"
+  LOGGING_LEVEL_REACTOR_NETTY: "INFO"
+  LOGGING_LEVEL_COM_SKAX_RA: "DEBUG"
+  SERVER_PORT: "8080"
+  SPRING_PROFILES_ACTIVE: "dev"
+
+nodeSelector: 
+  role: devops
+
+hostAliases: []

@@ -1,0 +1,102 @@
+services:
+  # --------------------------------------------------------------------------
+  # 1. Database & Cache
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: scm
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeit
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - scm-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    restart: always
+    command: redis-server --requirepass password123
+    ports:
+      - "6379:6379"
+    networks:
+      - scm-network
+
+  # --------------------------------------------------------------------------
+  # 2. Backend Services
+  # --------------------------------------------------------------------------
+  scm-common-service:
+    build:
+      context: ./skax-scm-backend/common/scm-common-service
+      dockerfile: Dockerfile
+    container_name: scm-common-service
+    restart: on-failure
+    ports:
+      - "8082:8080" # Internal 8080 mapped to external 8082 to avoid conflict
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - DB_URL=postgres:5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=changeit
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=password123
+      - TZ=Asia/Seoul
+      - SERVER_PORT=8080
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - scm-network
+
+  scm-api-gateway:
+    build:
+      context: ./skax-scm-backend/gateway/scm-api-gateway
+      dockerfile: Dockerfile
+    container_name: scm-api-gateway
+    restart: on-failure
+    ports:
+      - "8081:8080" # Gateway exposes 8081 externally
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - TZ=Asia/Seoul
+      - SERVER_PORT=8080
+      - COMMON_SERVICE_URL=http://scm-common-service:8080
+    depends_on:
+      - scm-common-service
+    networks:
+      - scm-network
+
+  # --------------------------------------------------------------------------
+  # 3. Frontend Service
+  # --------------------------------------------------------------------------
+  scm-admin-web:
+    build:
+      context: ./skax-scm-frontend/scm-admin-web
+      dockerfile: Dockerfile
+    container_name: scm-admin-web
+    restart: on-failure
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Seoul
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
+    depends_on:
+      - scm-api-gateway
+    networks:
+      - scm-network
+
+networks:
+  scm-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

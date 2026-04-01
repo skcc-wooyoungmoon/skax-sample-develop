@@ -1,0 +1,200 @@
+name: Frontend Admin Web CI & GitOps
+
+on:
+  push:
+    branches: [ main, develop, feature/*, hotfix/* ]
+    paths:
+      - '.github/workflows/frontend-admin-web.yaml'
+      - 'skax-scm-frontend/scm-admin-web/**'
+      - 'skax-scm-devops/scm-cicd/helm-charts/scm-frontend/scm-admin-web/**'
+      - '!**/*.md'  # 문서 변경 시 배포 제외
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+# 동시성 제어: 동일 브랜치/PR의 중복 실행 방지
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  # 환경별 상수 정의 (리소스 이름)
+  DEV_AKS_RG: skax-common-agent-dev-rg
+  DEV_AKS_CLUSTER: skax-common-agent-dev-aks
+  DEV_ACR: skaxcommonagentdevacr.azurecr.io
+  DEV_NEXT_PUBLIC_API_BASE_URL: http://api.scm.local
+  PRD_AKS_RG: skax-common-agent-prod-rg
+  PRD_AKS_CLUSTER: skax-common-agent-prod-aks
+  PRD_ACR: skaxcommonagentprodacr.azurecr.io
+  PRD_NEXT_PUBLIC_API_BASE_URL: http://api.scm.local
+  
+  # 공통 설정
+  NAMESPACE: scm-frontend
+  APP_NAME: scm-admin-web
+  HELM_CHART_PATH: ./skax-scm-devops/scm-cicd/helm-charts/scm-frontend/scm-admin-web
+  DOCKERFILE_PATH: ./skax-scm-frontend/scm-admin-web
+
+jobs:
+  # 1. 환경 및 변수 결정 (Router)
+  determine-environment:
+    runs-on:
+      group: mygit-runner-linux
+    outputs:
+      env_name: ${{ steps.get_env.outputs.env_name }}
+      node_env: ${{ steps.get_env.outputs.node_env }}      
+      registry: ${{ steps.get_env.outputs.registry }}
+      resource_group: ${{ steps.get_env.outputs.resource_group }}
+      cluster_name: ${{ steps.get_env.outputs.cluster_name }}
+      next_public_api_base_url: ${{ steps.get_env.outputs.next_public_api_base_url }}      
+    steps:
+      - name: Determine Environment Variables
+        id: get_env
+        run: |
+          # PROD 조건: workflow_dispatch(prod) 또는 main/submit 브랜치
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.environment }}" == "prod" ]] || \
+             [[ "${{ github.ref }}" == "refs/heads/main" ]] || \
+             [[ "${{ github.ref }}" == "refs/heads/submit" ]]; then
+            
+            echo "Environment: Production"
+            echo "env_name=prod" >> $GITHUB_OUTPUT
+            echo "node_env=production" >> $GITHUB_OUTPUT
+            echo "registry=${{ env.PRD_ACR }}" >> $GITHUB_OUTPUT
+            echo "resource_group=${{ env.PRD_AKS_RG }}" >> $GITHUB_OUTPUT
+            echo "cluster_name=${{ env.PRD_AKS_CLUSTER }}" >> $GITHUB_OUTPUT
+            echo "next_public_api_base_url=${{ env.PRD_NEXT_PUBLIC_API_BASE_URL }}" >> $GITHUB_OUTPUT
+            
+          else
+            # 그 외는 모두 DEV
+            echo "Environment: Development"
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "node_env=production" >> $GITHUB_OUTPUT
+            echo "registry=${{ env.DEV_ACR }}" >> $GITHUB_OUTPUT
+            echo "resource_group=${{ env.DEV_AKS_RG }}" >> $GITHUB_OUTPUT
+            echo "cluster_name=${{ env.DEV_AKS_CLUSTER }}" >> $GITHUB_OUTPUT
+            echo "next_public_api_base_url=${{ env.DEV_NEXT_PUBLIC_API_BASE_URL }}" >> $GITHUB_OUTPUT
+          fi
+
+  # 2. 빌드 및 푸시
+  build:
+    needs: determine-environment
+    runs-on:
+      group: mygit-runner-linux
+    environment: ${{ needs.determine-environment.outputs.env_name == 'prod' && 'prd-env' || 'dev-env' }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      image_tag: ${{ steps.set_image_tag.outputs.image_tag }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+        sparse-checkout: |
+          skax-scm-frontend/scm-admin-web
+            
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        auth-type: SERVICE_PRINCIPAL
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        allow-no-subscriptions: true
+
+    - name: Login to ACR
+      run: |
+        # Registry URL에서 이름만 추출하여 로그인
+        ACR_NAME=$(echo "${{ needs.determine-environment.outputs.registry }}" | cut -d'.' -f1)
+        az acr login --name $ACR_NAME
+    
+    - name: Set Image Tag
+      id: set_image_tag
+      run: |
+        DATE=$(date +'%Y%m%d')
+        SHORT_SHA=$(git rev-parse --short HEAD)
+        IMAGE_TAG="${{ needs.determine-environment.outputs.env_name }}-${DATE}.${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+        
+        echo "Generated Tag: $IMAGE_TAG"
+        echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+    - name: Build and Push
+      uses: docker/build-push-action@v5
+      with:
+        context: ${{ env.DOCKERFILE_PATH }}
+        file: ${{ env.DOCKERFILE_PATH }}/Dockerfile
+        push: true
+        tags: |
+          ${{ needs.determine-environment.outputs.registry }}/${{ env.APP_NAME }}:${{ steps.set_image_tag.outputs.image_tag }}
+          ${{ needs.determine-environment.outputs.registry }}/${{ env.APP_NAME }}:latest-${{ needs.determine-environment.outputs.env_name }}
+        cache-from: |
+          type=registry,ref=${{ needs.determine-environment.outputs.registry }}/${{ env.APP_NAME }}:latest-${{ needs.determine-environment.outputs.env_name }}
+        cache-to: type=inline
+        build-args: |
+          NODE_ENV=${{ needs.determine-environment.outputs.node_env }}
+          NEXT_PUBLIC_API_BASE_URL=${{ needs.determine-environment.outputs.next_public_api_base_url }}
+          NPM_REGISTRY=https://nexus.skax.co.kr/repository/dev-npm-proxy/
+#          ACR_URL=${{ needs.determine-environment.outputs.registry }}
+        labels: |
+          org.opencontainers.image.revision=${{ github.sha }}
+          org.opencontainers.image.version=${{ steps.set_image_tag.outputs.image_tag }}
+
+  # 3. AKS 배포
+  deploy:
+    needs: [build, determine-environment]
+    runs-on:
+      group: mygit-runner-linux
+    environment: ${{ needs.determine-environment.outputs.env_name == 'prod' && 'prd-env' || 'dev-env' }}
+    permissions:
+      id-token: write
+      contents: write
+    
+    steps:
+    - name: Checkout Helm Chart
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref_name }}
+        sparse-checkout: |
+          skax-scm-devops/scm-cicd/helm-charts/scm-frontend/scm-admin-web
+        fetch-depth: 0
+
+    - name: Update Helm Image Tag
+      run: |
+        TARGET_FILE="${{ env.HELM_CHART_PATH }}/values-${{ needs.determine-environment.outputs.env_name }}.yaml"
+        
+        sed -i "s/tag: .*/tag: ${{ needs.build.outputs.image_tag }}/g" $TARGET_FILE
+        
+        echo "Updated $TARGET_FILE with tag ${{ needs.build.outputs.image_tag }}"
+
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add .
+        git commit -m "chore(deploy): update ${{ env.APP_NAME }} image tag to ${{ needs.build.outputs.image_tag }} [skip ci]" || echo "No changes to commit"
+        
+        # 원격 저장소의 최신 변경사항을 가져와 현재 커밋 위에 병합(rebase)하여 push 충돌 방지
+        git pull --rebase origin ${{ github.ref_name }}
+        
+        # 동시에 여러 액션이 실행될 경우를 대비해 push 재시도 로직 추가
+        for i in {1..3}; do
+          git push origin ${{ github.ref_name }} && exit 0
+          echo "Push failed, retrying in 3 seconds... ($i/3)"
+          sleep 3
+          git pull --rebase origin ${{ github.ref_name }}
+        done
+        exit 1

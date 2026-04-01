@@ -1,0 +1,89 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+group = 'skax.arch'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    maven {
+        url 'https://nexus.skax.co.kr/repository/maven-public/'
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // Actuator (Health Check 등)
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Spring Security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // Redis 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // spring-data-redis, jackson-databind 는 spring-boot-starter-data-redis 의존성에 포함됩니다.
+
+
+    // Mybatis 디펜던시 추가
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+    implementation("com.google.guava:guava:33.4.0-jre")
+
+    // SQL 로그
+    implementation 'com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.10.0'
+
+    // OpenAPI(Swagger)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+
+    // Apache POI for Excel
+    implementation 'org.apache.poi:poi'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+
+    // Apache Commons CSV
+    implementation 'org.apache.commons:commons-csv:1.10.0'
+
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    runtimeOnly 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // TEST
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    // Force UTF-8 so Korean literals are compiled correctly on Windows.
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('bootRun') {
+    // Ensure runtime log/output encoding is UTF-8 for IDE terminals.
+    jvmArgs += ['-Dfile.encoding=UTF-8', '-Dsun.jnu.encoding=UTF-8']
+}

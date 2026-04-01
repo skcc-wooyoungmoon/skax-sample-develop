@@ -1,0 +1,136 @@
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+
+  cloud:
+    gateway:
+      x-forwarded:
+        for-enabled: true
+        host-enabled: true
+        port-enabled: true
+        proto-enabled: true
+        prefix-enabled: true
+        for-append: false    # 중복 헤더 방지를 위해 false로 설정
+        host-append: false   # 중복 헤더 방지를 위해 false로 설정
+        port-append: false   # 중복 헤더 방지를 위해 false로 설정
+        proto-append: false  # 중복 헤더 방지를 위해 false로 설정
+        prefix-append: false # 중복 헤더 방지를 위해 false로 설정
+      routes:
+        # 인증 필요 Service
+        ## scm-common-service
+        - id: com-common-service-api
+          uri: ${COMMON_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/common/**
+          filters:
+            - LoginAuthFilter
+        ## scm-account-service
+        - id: com-account-service-api
+          uri: ${USER_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/account/**
+
+        # 인증 불필요 Service
+        ## scm-common-service
+        - id: com-common-service-public-api
+          uri: ${COMMON_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/common/users/authenticate
+
+        # SCM Swagger
+        ## scm-common-service
+        - id: com-common-service-swagger
+          uri: ${COMMON_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/common/swagger-ui/**, /common/v3/api-docs/**
+        ## scm-account-service
+        - id: com-account-service-swagger
+          uri: ${USER_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/account/swagger-ui/**, /account/v3/api-docs/**
+
+
+      globalcors:
+        cors-configurations:
+          "[/**]":
+            allowedOrigins:
+              - "http://admin.scm.local"
+              - "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "Authorization"
+              - "Content-Type"
+              - "X-Requested-With"
+              - "Accept"
+              - "Origin"
+              - "Access-Control-Request-Method"
+              - "Access-Control-Request-Headers"
+              - "X-API-KEY"
+            allowCredentials: true
+            exposedHeaders: ["Content-Disposition", "token-status", "X-API-Key-Status"]
+      # 🚨 추가된 부분: 하위 마이크로서비스에서 중복되어 올라오는 CORS 헤더를 제거 (유니크한 값만 유지)
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_UNIQUE
+
+management:
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+    startupState:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: "readinessState"
+        liveness:
+          include: "livenessState"
+        startup:
+          include: "*"
+  endpoints:
+    web:
+      exposure:
+        include: "health,mappings"
+
+app:
+  web:
+    ip:
+      whitelist: ${APP_WEB_IP_WHITELIST:0:0:0:0:0:0:0:1/128,192.168.0.0/16}
+  jwt:
+    secret: ${APP_JWT_SECRET:a_very_long_and_very_secure_secret_that_is_at_least_64_characters_long}
+    expiration: 3600000  # 1시간
+    refresh-expiration: 604800000 # 7일
+  interface:
+    ip:
+      allowList: ${APP_API_IP_ALLOWLIST:0.0.0.0/0}
+    key:
+      auth:
+        enabled: true
+        header: X-API-KEY
+        value: ${API_KEY_VALUE:your_super_secret_api_key}
+
+logging:
+  charset:
+    console: UTF-8
+  level:
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    org.springframework: ${LOGGING_LEVEL_ORG_SPRING:DEBUG}
+    org.hibernate: ${LOGGING_LEVEL_ORG_HIBERNATE:INFO}
+    jdk.event.security: ${LOGGING_LEVEL_JDK_EVENT_SECURITY:INFO}
+    io.lettuce: ${LOGGING_LEVEL_IO_LETTUCE:WARN}
+    io.netty: ${LOGGING_LEVEL_IO_NETTY:INFO}
+    reactor.netty: ${LOGGING_LEVEL_REACTOR_NETTY:INFO}
+    com.skax.scm: ${LOGGING_LEVEL_COM_SKAX_RA:DEBUG}
+
+server:
+  port: ${SERVER_PORT:8081}
+  shutdown: graceful

@@ -1,0 +1,17 @@
+{{- if .Values.backendTrafficPolicy.enabled -}}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: {{ include "scm-common-service.fullname" . }}-policy
+  labels:
+    {{- include "scm-common-service.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: {{ include "scm-common-service.fullname" . }}
+  {{- with .Values.backendTrafficPolicy.timeout }}
+  timeout:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

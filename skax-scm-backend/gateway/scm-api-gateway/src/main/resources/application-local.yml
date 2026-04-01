@@ -1,0 +1,3 @@
+logging:
+  pattern:
+    console: "%d %-5level [%thread] [traceId:%X{traceId:-}] [spanId:%X{spanId:-}] %logger : %msg%n"

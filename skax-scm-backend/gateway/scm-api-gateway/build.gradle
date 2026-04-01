@@ -1,0 +1,72 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+    id 'io.spring.dependency-management'
+}
+
+group = 'com.skax.scm'
+version = '1.0-RELEASE'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+	maven {
+		url "https://nexus.skax.co.kr/repository/maven-public/"
+	}
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+dependencies {
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
+	implementation "org.springframework.cloud:spring-cloud-starter-gateway"
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	
+	testImplementation "org.springframework.boot:spring-boot-starter-test"
+
+	/*
+	 * login filter 추가를 위해 추가
+	 */
+	implementation "org.springframework.boot:spring-boot-starter-webflux"
+
+	/*
+		JWT Util 추가
+	    
+	 */
+	implementation "io.jsonwebtoken:jjwt:${jjwtVersion}"
+
+	/*
+		lomok for Logging
+	 */
+	compileOnly "org.projectlombok:lombok:${lombokVersion}"
+	annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+	implementation "org.apache.commons:commons-pool2:${commonsPool2Version}"
+
+	// JAXB API
+	compileOnly "javax.xml.bind:jaxb-api:${jaxbApiVersion}"
+	implementation "org.glassfish.jaxb:jaxb-runtime:${jaxbRuntimeVersion}"
+	compileOnly "javax.activation:activation:${activationVersion}"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    // Force UTF-8 so Korean literals are compiled correctly on Windows.
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('bootRun') {
+    // Ensure runtime log/output encoding is UTF-8 for IDE terminals.
+    jvmArgs += ['-Dfile.encoding=UTF-8', '-Dsun.jnu.encoding=UTF-8']
+}

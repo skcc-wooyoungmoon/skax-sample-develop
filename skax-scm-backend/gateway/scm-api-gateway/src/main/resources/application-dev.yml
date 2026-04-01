@@ -1,0 +1,4 @@
+logging:
+  pattern:
+    console: |
+      {"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","message":"%replace(%msg){'"', '\\"'}","exception":"%replace(%replace(%ex){'[\r\n]+', '\\n'}){'"', '\\"'}%nopex"}

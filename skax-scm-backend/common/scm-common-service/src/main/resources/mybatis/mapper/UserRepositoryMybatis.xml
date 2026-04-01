@@ -1,0 +1,127 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="scm.common.biz.user.infrastructure.mybatis.UserRepositoryMybatis">
+
+    <resultMap id="UserResultMap" type="scm.common.biz.user.infrastructure.mybatis.UserDto">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="email" property="email"/>
+        <result column="password" property="password"/>
+        <result column="status" property="status"/>
+        <result column="created_date" property="createdDate"/>
+        <result column="last_modified_date" property="lastModifiedDate"/>
+    </resultMap>
+
+    <select id="findById" parameterType="long" resultMap="UserResultMap">
+        SELECT id,
+               username,
+               email,
+               password,
+               status,
+               created_date,
+               last_modified_date
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByEmail" parameterType="string" resultMap="UserResultMap">
+        SELECT id,
+               username,
+               email,
+               password,
+               status,
+               created_date,
+               last_modified_date
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <insert id="save" parameterType="scm.common.biz.user.infrastructure.mybatis.UserDto">
+        <selectKey keyProperty="id" resultType="long" order="BEFORE">
+            SELECT nextval('users_seq')
+        </selectKey>
+        INSERT INTO users (id, username, email, password, status, created_date, last_modified_date)
+        VALUES (#{id},
+                #{username},
+                #{email},
+                #{password},
+                #{status},
+                #{createdDate},
+                #{lastModifiedDate})
+    </insert>
+
+    <update id="update" parameterType="scm.common.biz.user.infrastructure.mybatis.UserDto">
+        UPDATE users
+        SET username           = #{username},
+            email              = #{email},
+            password           = #{password},
+            status             = #{status},
+            last_modified_date = #{lastModifiedDate}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus" parameterType="scm.common.biz.user.infrastructure.mybatis.UserDto">
+        UPDATE users
+        SET status             = #{status},
+            last_modified_date = #{lastModifiedDate}
+        WHERE id = #{id}
+    </update>
+
+    <select id="findAll" resultMap="UserResultMap">
+        SELECT id,
+               username,
+               email,
+               password,
+               status,
+               created_date,
+               last_modified_date
+        FROM users
+        ORDER BY id ASC
+    </select>
+
+    <select id="findAllWithPageable" resultMap="UserResultMap">
+        SELECT id,
+               username,
+               email,
+               password,
+               status,
+               created_date,
+               last_modified_date
+        FROM users
+        ORDER BY id ASC
+            LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*)
+        FROM users
+    </select>
+
+    <select id="findAdminUsersWithPageable" resultMap="UserResultMap">
+        SELECT id,
+               username,
+               email,
+               password,
+               status,
+               created_date,
+               last_modified_date
+        FROM users
+        WHERE id IN
+        <foreach collection="userIds" item="uid" open="(" separator="," close=")">
+            #{uid}
+        </foreach>
+        ORDER BY id ASC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countAdminUsers" resultType="long">
+        SELECT COUNT(*)
+        FROM users
+        WHERE id IN
+        <foreach collection="userIds" item="uid" open="(" separator="," close=")">
+            #{uid}
+        </foreach>
+    </select>
+</mapper>
+

@@ -1,0 +1,24 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="scm.common.biz.file.infrastructure.mybatis.FileRepositoryMybatis">
+
+    <insert id="insert" parameterType="scm.common.biz.file.infrastructure.mybatis.FileDto"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO files (org_name, enc_name, dir_path, size, created_date, last_modified_date)
+        VALUES (#{orgName}, #{encName}, #{dirPath}, #{size}, #{createdDate}, #{lastModifiedDate})
+    </insert>
+
+    <select id="findById" resultType="scm.common.biz.file.infrastructure.mybatis.FileDto">
+        SELECT id,
+               org_name           AS orgName,
+               enc_name           AS encName,
+               dir_path           AS dirPath,
+               size,
+               created_date       AS createdDate,
+               last_modified_date AS lastModifiedDate
+        FROM files
+        WHERE id = #{id}
+    </select>
+</mapper>
+
