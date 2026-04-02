@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/backend-api-gateway.yaml'
       - 'skax-scm-backend/gateway/scm-api-gateway/**'
-      - 'skax-scm-devops/scm-cicd/helm-charts/scm-backend/gateway/scm-api-gateway/**'
+      - '../../skax-devops/scm-cicd/helm-charts/scm-backend/gateway/scm-api-gateway/**'
       - '!**/*.md'  # 문서 변경 시 배포 제외
   workflow_dispatch:
     inputs:
@@ -52,10 +52,9 @@ jobs:
       - name: Determine Environment Variables
         id: get_env
         run: |
-          # PROD 조건: workflow_dispatch(prod) 또는 main/submit 브랜치
+          # PROD 조건: workflow_dispatch(prod) 또는 main 브랜치
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.environment }}" == "prod" ]] || \
-             [[ "${{ github.ref }}" == "refs/heads/main" ]] || \
-             [[ "${{ github.ref }}" == "refs/heads/submit" ]]; then
+             [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
 
             echo "Environment: Production"
             echo "env_name=prod" >> $GITHUB_OUTPUT
@@ -67,9 +66,33 @@ jobs:
             echo "registry=${{ env.REGISTRY_IMAGE_PREFIX }}" >> $GITHUB_OUTPUT
           fi
 
-  # 2. 빌드 및 GHCR 푸시
-  build:
+  # 2. 테스트 및 빌드
+  test:
     needs: determine-environment
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Run tests
+      working-directory: ${{ env.DOCKERFILE_PATH }}
+      run: |
+        ./gradlew test --no-daemon
+
+    - name: Build JAR
+      working-directory: ${{ env.DOCKERFILE_PATH }}
+      run: |
+        ./gradlew build -x test --no-daemon
+
+  # 3. 빌드 및 GHCR 푸시
+  build:
+    needs: [test, determine-environment]
     runs-on: ubuntu-latest
     environment: ${{ needs.determine-environment.outputs.env_name == 'prod' && 'prd-env' || 'dev-env' }}
     permissions:
@@ -135,14 +158,19 @@ jobs:
       with:
         ref: ${{ github.ref_name }}
         sparse-checkout: |
-          skax-scm-devops/scm-cicd/helm-charts/scm-backend/gateway/scm-api-gateway
+          skax-devops/scm-cicd/helm-charts/backend/gateway/api-gateway
         fetch-depth: 0
 
     - name: Update Helm Image Tag
       run: |
         TARGET_FILE="${{ env.HELM_CHART_PATH }}/values-${{ needs.determine-environment.outputs.env_name }}.yaml"
-        sed -i "s/tag: .*/tag: ${{ needs.build.outputs.image_tag }}/g" $TARGET_FILE
+        
+        # yq로 안전하게 image.tag 필드만 업데이트
+        yq -i ".image.tag = \"${{ needs.build.outputs.image_tag }}\"" "$TARGET_FILE"
+        
         echo "Updated $TARGET_FILE with tag ${{ needs.build.outputs.image_tag }}"
+        echo "Updated content:"
+        yq '.image' "$TARGET_FILE"
 
     - name: Commit and Push Changes
       run: |

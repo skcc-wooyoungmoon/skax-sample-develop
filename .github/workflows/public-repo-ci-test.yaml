@@ -1,0 +1,36 @@
+name: spring-ci
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - skax-scm-backend/common/common-service
+          - skax-scm-backend/gateway/api-gateway
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: ${{ matrix.module }}/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Grant execute permission
+        working-directory: ${{ matrix.module }}
+        run: chmod +x ./gradlew
+
+      - name: Run tests
+        working-directory: ${{ matrix.module }}
+        run: ./gradlew test --no-daemon
