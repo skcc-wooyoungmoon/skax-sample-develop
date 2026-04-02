@@ -27,7 +27,6 @@ concurrency:
 permissions:
   contents: read
   packages: write   # GHCR 이미지 push 권한
-  id-token: write   # OIDC 인증 권한 (Azure 배포 시 사용)
 
 env:
   # ----------------------------------------------------------------
@@ -35,15 +34,6 @@ env:
   # ----------------------------------------------------------------
   REGISTRY: ghcr.io
   REGISTRY_IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
-
-  # ----------------------------------------------------------------
-  # TODO: AKS 배포 시 본인 환경에 맞게 수정하세요
-  # Settings > Environments > dev-env / prd-env 에 Variable로도 관리 가능
-  # ----------------------------------------------------------------
-  DEV_AKS_RG: <dev-resource-group>
-  DEV_AKS_CLUSTER: <dev-aks-cluster>
-  PRD_AKS_RG: <prod-resource-group>
-  PRD_AKS_CLUSTER: <prod-aks-cluster>
 
   # 공통 설정
   NAMESPACE: scm-backend
@@ -58,8 +48,6 @@ jobs:
     outputs:
       env_name: ${{ steps.get_env.outputs.env_name }}
       registry: ${{ steps.get_env.outputs.registry }}
-      resource_group: ${{ steps.get_env.outputs.resource_group }}
-      cluster_name: ${{ steps.get_env.outputs.cluster_name }}
     steps:
       - name: Determine Environment Variables
         id: get_env
@@ -72,15 +60,11 @@ jobs:
             echo "Environment: Production"
             echo "env_name=prod" >> $GITHUB_OUTPUT
             echo "registry=${{ env.REGISTRY_IMAGE_PREFIX }}" >> $GITHUB_OUTPUT
-            echo "resource_group=${{ env.PRD_AKS_RG }}" >> $GITHUB_OUTPUT
-            echo "cluster_name=${{ env.PRD_AKS_CLUSTER }}" >> $GITHUB_OUTPUT
 
           else
             echo "Environment: Development"
             echo "env_name=dev" >> $GITHUB_OUTPUT
             echo "registry=${{ env.REGISTRY_IMAGE_PREFIX }}" >> $GITHUB_OUTPUT
-            echo "resource_group=${{ env.DEV_AKS_RG }}" >> $GITHUB_OUTPUT
-            echo "cluster_name=${{ env.DEV_AKS_CLUSTER }}" >> $GITHUB_OUTPUT
           fi
 
   # 2. 빌드 및 GHCR 푸시
@@ -91,7 +75,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
     outputs:
       image_tag: ${{ steps.set_image_tag.outputs.image_tag }}
 
@@ -142,7 +125,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.determine-environment.outputs.env_name == 'prod' && 'prd-env' || 'dev-env' }}
     permissions:
-      id-token: write
       contents: write
 
     steps:
@@ -180,30 +162,21 @@ jobs:
         exit 1
 
     # ----------------------------------------------------------------
-    # TODO: Azure AKS에 직접 배포하려면 아래 주석을 해제하고
-    #       Settings > Environments에 AZURE_CLIENT_ID 등 Variables를 추가하세요
-    #       참고: docs/ci-cd-workflow-guide.md - Step 5
+    # Optional: 퍼블릭 무료 플랫폼에 실제 배포 연결
     # ----------------------------------------------------------------
-    # - name: Azure Login
-    #   uses: azure/login@v2
-    #   with:
-    #     auth-type: SERVICE_PRINCIPAL
-    #     client-id: ${{ vars.AZURE_CLIENT_ID }}
-    #     tenant-id: ${{ vars.AZURE_TENANT_ID }}
-    #     subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-    # - name: Set AKS Context
-    #   uses: azure/aks-set-context@v3
-    #   with:
-    #     resource-group: ${{ needs.determine-environment.outputs.resource_group }}
-    #     cluster-name: ${{ needs.determine-environment.outputs.cluster_name }}
-
-    # - name: Helm Deploy
+    # Render Deploy Hook 예시
+    # - name: Trigger Render Deploy
+    #   env:
+    #     RENDER_HOOK_URL: ${{ needs.determine-environment.outputs.env_name == 'prod' && secrets.RENDER_DEPLOY_HOOK_URL_PRD || secrets.RENDER_DEPLOY_HOOK_URL_DEV }}
     #   run: |
-    #     helm upgrade --install ${{ env.APP_NAME }} ${{ env.HELM_CHART_PATH }} \
-    #       --namespace ${{ env.NAMESPACE }} \
-    #       --create-namespace \
-    #       --values ${{ env.HELM_CHART_PATH }}/values-${{ needs.determine-environment.outputs.env_name }}.yaml \
-    #       --set image.tag=${{ needs.build.outputs.image_tag }} \
-    #       --wait
+    #     curl -fsSL -X POST "$RENDER_HOOK_URL"
+
+    # Fly.io 배포 예시 (flyctl 필요)
+    # - name: Setup Flyctl
+    #   uses: superfly/flyctl-actions/setup-flyctl@master
+    # - name: Deploy to Fly.io
+    #   env:
+    #     FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    #   run: |
+    #     flyctl deploy --remote-only --config fly.toml
 
