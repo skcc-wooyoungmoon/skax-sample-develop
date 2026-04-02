@@ -1,15 +1,15 @@
 # SKAX Sample Architecture
 
-[![Frontend Admin Web](https://github.com/<your-id>/skax-sample-develop/actions/workflows/frontend-admin-web.yaml/badge.svg)](https://github.com/<your-id>/skax-sample-develop/actions/workflows/frontend-admin-web.yaml)
-[![Backend API Gateway](https://github.com/<your-id>/skax-sample-develop/actions/workflows/backend-api-gateway.yaml/badge.svg)](https://github.com/<your-id>/skax-sample-develop/actions/workflows/backend-api-gateway.yaml)
-[![Backend Common Service](https://github.com/<your-id>/skax-sample-develop/actions/workflows/backend-common-common.yaml/badge.svg)](https://github.com/<your-id>/skax-sample-develop/actions/workflows/backend-common-common.yaml)
+[![Frontend Admin Web](https://github.com/skcc-wooyoungmoon/skax-sample-develop/actions/workflows/frontend-admin-web.yaml/badge.svg)](https://github.com/skcc-wooyoungmoon/skax-sample-develop/actions/workflows/frontend-admin-web.yaml)
+[![Backend API Gateway](https://github.com/skcc-wooyoungmoon/skax-sample-develop/actions/workflows/backend-api-gateway.yaml/badge.svg)](https://github.com/skcc-wooyoungmoon/skax-sample-develop/actions/workflows/backend-api-gateway.yaml)
+[![Backend Common Service](https://github.com/skcc-wooyoungmoon/skax-sample-develop/actions/workflows/backend-common-common.yaml/badge.svg)](https://github.com/skcc-wooyoungmoon/skax-sample-develop/actions/workflows/backend-common-common.yaml)
 
 개인 학습/포트폴리오 용도로 운영하는 **Public GitHub 샘플 레포지토리**입니다.
 MSA 기반 구조(Frontend, Backend, AI Agent, DevOps)를 실험하고, 문서화-배포-운영 흐름을 함께 관리합니다.
 
 ## Demo & Deployment
 
-- Public Repository: `https://github.com/<your-id>/skax-sample-develop`
+- Public Repository: `https://github.com/skcc-wooyoungmoon/skax-sample-develop`
 - Live Demo: `https://<your-domain>`
 - API Endpoint: `https://<your-api-domain>`
 
@@ -49,7 +49,7 @@ skax-sample-develop/
 ### 1) Clone
 
 ```bash
-git clone https://github.com/<your-id>/skax-sample-develop.git
+git clone https://github.com/skcc-wooyoungmoon/skax-sample-develop.git
 cd skax-sample-develop
 ```
 

@@ -64,7 +64,7 @@ export default function SampleCrudDashboard() {
     if (!name) {
       setState((prev) => ({
         ...prev,
-        error: "name은 필수입니다.",
+        error: "이름은 필수입니다.",
         message: "",
       }));
       return;
@@ -127,20 +127,20 @@ export default function SampleCrudDashboard() {
   return (
     <div>
       <header className={styles.pageHeader}>
-        <h1 className={styles.title}>SCM Sample CRUD Frontend</h1>
+        <h1 className={styles.title}>SCM 샘플 CRUD 프론트엔드</h1>
         <p className={styles.description}>
-          backend sample(MyBatis) API와 직접 연동되는 프론트 샘플 화면입니다.
+          백엔드 샘플(MyBatis) API와 직접 연동되는 프론트엔드 샘플 화면입니다.
         </p>
       </header>
 
       <div className={styles.grid}>
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>MyBatis Sample Items</h2>
+          <h2 className={styles.panelTitle}>MyBatis 샘플 항목</h2>
 
           <div className={styles.formRow}>
             <input
               className={styles.input}
-              placeholder="name (필수)"
+              placeholder="이름 (필수)"
               value={state.name}
               onChange={(event) =>
                 setState((prev) => ({ ...prev, name: event.target.value }))
@@ -148,7 +148,7 @@ export default function SampleCrudDashboard() {
             />
             <input
               className={styles.input}
-              placeholder="description"
+              placeholder="설명"
               value={state.description}
               onChange={(event) =>
                 setState((prev) => ({ ...prev, description: event.target.value }))
@@ -214,7 +214,7 @@ export default function SampleCrudDashboard() {
                 </div>
                 <p className={styles.itemDesc}>{item.description || "-"}</p>
                 <p className={styles.itemMeta}>
-                  created: {toLocale(item.createdDate)} / modified: {toLocale(item.lastModifiedDate)}
+                  생성일: {toLocale(item.createdDate)} / 수정일: {toLocale(item.lastModifiedDate)}
                 </p>
               </li>
             ))}

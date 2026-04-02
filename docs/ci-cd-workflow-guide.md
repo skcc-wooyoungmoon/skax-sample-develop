@@ -16,6 +16,7 @@ GitHub Actions + GitHub Container Registry(GHCR) + GitOps 패턴 기반의 CI/CD
 
 ---
 
+
 ## Step 1. GitHub Repository 생성 및 기본 설정
 
 1. [github.com](https://github.com) → 우측 상단 `+` → `New repository`
@@ -23,7 +24,7 @@ GitHub Actions + GitHub Container Registry(GHCR) + GitOps 패턴 기반의 CI/CD
 3. 로컬에서 원격 연결:
 
 ```bash
-git remote add origin https://github.com/<your-id>/<repo-name>.git
+git remote add origin https://github.com/skcc-wooyoungmoon/<repo-name>.git
 git branch -M main
 git push -u origin main
 ```
@@ -81,14 +82,14 @@ Azure AKS에 실제 배포하려면 각 환경(dev-env / prd-env)에 아래 Vari
 
 ```bash
 # Azure CLI 로그인
-az login
+#az login
 
 # Service Principal 생성 (AKS 리소스 그룹에 Contributor 권한 부여)
-az ad sp create-for-rbac \
-  --name "github-actions-sp" \
-  --role contributor \
-  --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group> \
-  --sdk-auth
+# az ad sp create-for-rbac \
+#  --name "github-actions-sp" \
+#  --role contributor \
+#  --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group> \
+#  --sdk-auth
 ```
 
 > OIDC 방식(Federated Identity)을 권장합니다. [Azure 공식 문서](https://docs.microsoft.com/en-us/azure/developer/github/connect-from-azure) 참고

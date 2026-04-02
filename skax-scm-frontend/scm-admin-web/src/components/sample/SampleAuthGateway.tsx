@@ -34,7 +34,7 @@ export default function SampleAuthGateway() {
 
   const handleSignUp = async (): Promise<void> => {
     if (!email.trim() || !password.trim() || !username.trim()) {
-      setError("회원가입은 email/password/username이 모두 필요합니다.");
+      setError("회원가입은 이메일/비밀번호/사용자 이름이 모두 필요합니다.");
       setMessage("");
       return;
     }
@@ -59,7 +59,7 @@ export default function SampleAuthGateway() {
 
   const handleLogin = async (): Promise<void> => {
     if (!email.trim() || !password.trim()) {
-      setError("로그인은 email/password가 필요합니다.");
+      setError("로그인은 이메일/비밀번호가 필요합니다.");
       setMessage("");
       return;
     }
@@ -102,20 +102,20 @@ export default function SampleAuthGateway() {
           <div className={styles.row}>
             <input
               className={styles.input}
-              placeholder="email"
+              placeholder="이메일"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
             <input
               className={styles.input}
-              placeholder="password"
+              placeholder="비밀번호"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
             <input
               className={styles.input}
-              placeholder="username (signup 전용)"
+              placeholder="사용자 이름 (회원가입 전용)"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
             />
@@ -145,7 +145,7 @@ export default function SampleAuthGateway() {
         </section>
       ) : (
         <section className={styles.authTopBar}>
-          <p>인증 상태: 로그인됨 (Bearer 자동 주입)</p>
+          <p>인증 상태: 로그인됨 (Bearer 토큰 자동 주입)</p>
           <button type="button" className={styles.button} onClick={handleLogout}>
             로그아웃
           </button>
